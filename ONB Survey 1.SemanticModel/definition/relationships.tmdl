@@ -1,0 +1,24 @@
+relationship 49e0dcea-5b0a-5d40-bdc2-a494d387f3d3
+	fromColumn: 'Respuestas Likert'.Id
+	toColumn: Encuesta.Id
+
+relationship ab0bb6f5-f746-5c23-a0dc-e304e4cfa090
+	fromColumn: 'Respuestas Likert'.Clave
+	toColumn: Pregunta.Clave
+
+relationship fc119b32-d736-59be-96b5-5ee0ce230ccb
+	fromColumn: 'Respuestas Likert'.Respuesta
+	toColumn: 'Escala Likert'.Respuesta
+
+relationship 021df2d2-298a-5589-a486-a6fd9f54063b
+	fromColumn: 'Opciones Seleccionadas'.Id
+	toColumn: Encuesta.Id
+
+relationship 799b55e8-5cf8-5f4c-b3e8-6959ae8ff810
+	fromColumn: Comentarios.Id
+	toColumn: Encuesta.Id
+
+relationship 9960f392-8b53-5749-98de-0916a528257b
+	fromColumn: Encuesta.Fecha
+	toColumn: Calendario.Fecha
+

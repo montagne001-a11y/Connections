@@ -1,0 +1,72 @@
+/// Preguntas de selección múltiple de Forms separadas por ";" → una fila por encuesta × opción marcada.
+table 'Opciones Seleccionadas'
+
+	column Id
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Id
+
+	column Tipo
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Tipo
+		sortByColumn: 'Orden Tipo'
+
+	column 'Orden Tipo'
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Orden Tipo
+
+	column Opción
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Opción
+
+	partition 'Opciones Seleccionadas' = m
+		mode: import
+		source =
+				let
+				    Source = Origen,
+				    // Forms exporta cada pregunta dos veces (con y sin sufijo "1"); se toma la que tenga datos.
+				    Preguntas = {
+				        {"¿Qué fue lo que más te gustó del proceso de selección e inducción?", "Lo que más gustó", 1},
+				        {"¿Qué mejorarías del proceso de selección e inducción?", "Qué mejorarías", 2},
+				        {"¿Hay algo que esperabas recibir durante la inducción y no recibiste?", "Qué faltó en la inducción", 3}
+				    },
+				    PorPregunta = List.Transform(
+				        Preguntas,
+				        (p) =>
+				            let
+				                Valores = Table.AddColumn(
+				                    Source,
+				                    "Opción",
+				                    each
+				                        let
+				                            v1 = Record.FieldOrDefault(_, p{0} & "1", null),
+				                            v0 = Record.FieldOrDefault(_, p{0}, null)
+				                        in
+				                            if v1 <> null and Text.Trim(Text.From(v1)) <> "" then Text.From(v1) else if v0 <> null then Text.From(v0) else null
+				                ),
+				                Seleccion = Table.SelectColumns(Valores, {"Id", "Opción"}),
+				                ConTipo = Table.AddColumn(Seleccion, "Tipo", each p{1}, type text),
+				                ConOrden = Table.AddColumn(ConTipo, "Orden Tipo", each p{2}, Int64.Type)
+				            in
+				                ConOrden
+				    ),
+				    Unir = Table.Combine(PorPregunta),
+				    ConDatos = Table.SelectRows(Unir, each [Opción] <> null),
+				    Lista = Table.TransformColumns(ConDatos, {{"Opción", each Text.Split(_, ";")}}),
+				    Expandir = Table.ExpandListColumn(Lista, "Opción"),
+				    Limpiar = Table.TransformColumns(Expandir, {{"Opción", each Text.Trim(_), type text}}),
+				    NoVacias = Table.SelectRows(Limpiar, each [Opción] <> null and [Opción] <> ""),
+				    SinDuplicados = Table.Distinct(NoVacias, {"Id", "Tipo", "Opción"}),
+				    Tipos = Table.TransformColumnTypes(SinDuplicados, {{"Id", Int64.Type}})
+				in
+				    Tipos
+
+	annotation PBI_ResultType = Table
+

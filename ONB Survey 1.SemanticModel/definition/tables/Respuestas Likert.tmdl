@@ -1,0 +1,60 @@
+/// Respuestas Likert despivotadas: una fila por encuesta × pregunta.
+table 'Respuestas Likert'
+
+	column Id
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Id
+
+	column Clave
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: Clave
+
+	column Respuesta
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: Respuesta
+
+	column Puntaje
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Puntaje
+
+	partition 'Respuestas Likert' = m
+		mode: import
+		source =
+				let
+				    Source = Origen,
+				    Claves = List.Select(
+				        Table.ColumnNames(Source),
+				        each Text.StartsWith(_, "Proceso de Selección.") or Text.StartsWith(_, "Proceso de Inducción.")
+				    ),
+				    Seleccion = Table.SelectColumns(Source, {"Id"} & Claves),
+				    Despivotar = Table.UnpivotOtherColumns(Seleccion, {"Id"}, "Clave", "Respuesta"),
+				    Limpiar = Table.TransformColumns(Despivotar, {{"Respuesta", each Text.Trim(Text.From(_)), type text}}),
+				    Escala = [
+				        #"Muy en desacuerdo" = 1,
+				        #"En desacuerdo" = 2,
+				        Neutral = 3,
+				        #"De acuerdo" = 4,
+				        #"Muy de acuerdo" = 5
+				    ],
+				    Puntaje = Table.AddColumn(
+				        Limpiar,
+				        "Puntaje",
+				        each Record.FieldOrDefault(Escala, [Respuesta], null),
+				        Int64.Type
+				    ),
+				    Validas = Table.SelectRows(Puntaje, each [Puntaje] <> null),
+				    Tipos = Table.TransformColumnTypes(Validas, {{"Clave", type text}})
+				in
+				    Tipos
+
+	annotation PBI_ResultType = Table
+

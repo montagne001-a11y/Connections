@@ -1,0 +1,55 @@
+{
+  "name": "GCG Onboarding",
+  "dataColors": [
+    "#1F4E79",
+    "#2A9D8F",
+    "#E0A100",
+    "#F4A261",
+    "#C0392B",
+    "#6C757D",
+    "#8AB17D",
+    "#264653"
+  ],
+  "background": "#FFFFFF",
+  "foreground": "#1F2937",
+  "tableAccent": "#1F4E79",
+  "good": "#1A7F5A",
+  "neutral": "#E0A100",
+  "bad": "#C0392B",
+  "maximum": "#1A7F5A",
+  "center": "#E0A100",
+  "minimum": "#C0392B",
+  "textClasses": {
+    "title": {
+      "fontFace": "Segoe UI Semibold",
+      "color": "#0F2A47",
+      "fontSize": 12
+    },
+    "label": {
+      "fontFace": "Segoe UI",
+      "color": "#1F2937",
+      "fontSize": 10
+    },
+    "callout": {
+      "fontFace": "Segoe UI Semibold",
+      "color": "#0F2A47",
+      "fontSize": 28
+    }
+  },
+  "visualStyles": {
+    "page": {
+      "*": {
+        "background": [
+          {
+            "color": {
+              "solid": {
+                "color": "#F3F5F8"
+              }
+            },
+            "transparency": 0
+          }
+        ]
+      }
+    }
+  }
+}

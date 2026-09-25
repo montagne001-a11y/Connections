@@ -1,0 +1,68 @@
+/// Comentarios abiertos con contexto (excluye vacíos y respuestas sin contenido como "Sin comentarios").
+table Comentarios
+
+	column Id
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Id
+
+	column Fecha
+		dataType: dateTime
+		formatString: dd/mm/yyyy
+		summarizeBy: none
+		sourceColumn: Fecha
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column País
+		dataType: string
+		summarizeBy: none
+		sourceColumn: País
+
+	column Compañía
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Compañía
+
+	column Rol
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Rol
+
+	column Comentario
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Comentario
+
+	partition Comentarios = m
+		mode: import
+		source =
+				let
+				    Source = Origen,
+				    Seleccion = Table.SelectColumns(
+				        Source,
+				        {"Id", "Hora de finalización", "País", "Compañia", "Rol", "¿Tienes algún comentario o sugerencia?"},
+				        MissingField.UseNull
+				    ),
+				    Renombrar = Table.RenameColumns(
+				        Seleccion,
+				        {{"Compañia", "Compañía"}, {"¿Tienes algún comentario o sugerencia?", "Comentario"}}
+				    ),
+				    Fecha = Table.AddColumn(Renombrar, "Fecha", each DateTime.Date([Hora de finalización]), type date),
+				    Limpiar = Table.TransformColumns(
+				        Fecha,
+				        {{"Comentario", each if _ = null then null else Text.Trim(Text.From(_)), type text}}
+				    ),
+				    SinContenido = {"", "sin comentarios", "ninguno", "ninguna", "n/a", "na", "no", "-", "."},
+				    Validos = Table.SelectRows(
+				        Limpiar,
+				        each [Comentario] <> null and not List.Contains(SinContenido, Text.Lower([Comentario]))
+				    ),
+				    Resultado = Table.SelectColumns(Validos, {"Id", "Fecha", "País", "Compañía", "Rol", "Comentario"})
+				in
+				    Resultado
+
+	annotation PBI_ResultType = Table
+

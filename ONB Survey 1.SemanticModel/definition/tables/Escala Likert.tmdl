@@ -1,0 +1,49 @@
+/// Escala Likert de 5 puntos agrupada en sentimiento (Top-2 / Bottom-2 Box).
+table 'Escala Likert'
+
+	column Respuesta
+		dataType: string
+		isKey
+		summarizeBy: none
+		sourceColumn: Respuesta
+		sortByColumn: Puntaje
+
+	column Puntaje
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Puntaje
+
+	column Sentimiento
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Sentimiento
+		sortByColumn: 'Orden Sentimiento'
+
+	column 'Orden Sentimiento'
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Orden Sentimiento
+
+	partition 'Escala Likert' = m
+		mode: import
+		source =
+				let
+				    Source = #table(
+				        type table [Respuesta = text, Puntaje = Int64.Type, Sentimiento = text, #"Orden Sentimiento" = Int64.Type],
+				        {
+				            {"Muy en desacuerdo", 1, "Desfavorable", 1},
+				            {"En desacuerdo", 2, "Desfavorable", 1},
+				            {"Neutral", 3, "Neutral", 2},
+				            {"De acuerdo", 4, "Favorable", 3},
+				            {"Muy de acuerdo", 5, "Favorable", 3}
+				        }
+				    )
+				in
+				    Source
+
+	annotation PBI_ResultType = Table
+

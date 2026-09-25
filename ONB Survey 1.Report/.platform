@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "ONB Survey 1"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "0c5a7f3e-2b9d-4e61-a8f4-7d2e9b1c6a53"
+  }
+}

@@ -1,0 +1,327 @@
+/// Tabla de medidas del tablero de satisfacción de Selección e Inducción.
+table _Medidas
+
+	/// Número de encuestas respondidas.
+	measure Respuestas = COUNTROWS ( Encuesta )
+		formatString: #,0
+		displayFolder: 1. Participación
+
+	/// Personas distintas (por correo) que respondieron.
+	measure 'Colaboradores Únicos' = DISTINCTCOUNT ( Encuesta[Correo] )
+		formatString: #,0
+		displayFolder: 1. Participación
+
+	/// Compañías con al menos una respuesta.
+	measure 'Compañías Participantes' = DISTINCTCOUNT ( Encuesta[Compañía] )
+		formatString: #,0
+		displayFolder: 1. Participación
+
+	/// Países con al menos una respuesta.
+	measure 'Países Participantes' = DISTINCTCOUNT ( Encuesta[País] )
+		formatString: #,0
+		displayFolder: 1. Participación
+
+	/// Minutos promedio para completar la encuesta.
+	measure 'Duración Promedio (min)' = AVERAGE ( Encuesta[Duración (min)] )
+		formatString: 0.0
+		displayFolder: 1. Participación
+
+	/// Fecha y hora de la respuesta más reciente.
+	measure 'Última Respuesta' = MAX ( Encuesta[Hora de finalización] )
+		formatString: dd/mm/yyyy hh:nn
+		displayFolder: 1. Participación
+
+	/// Texto dinámico para el encabezado.
+	measure 'Resumen Participación' =
+			VAR _Resp = [Respuestas]
+			RETURN
+			    IF (
+			        _Resp > 0,
+			        FORMAT ( _Resp, "#,0" ) & " respuestas · "
+			            & FORMAT ( [Compañías Participantes], "#,0" ) & " compañías · "
+			            & FORMAT ( [Países Participantes], "#,0" ) & " países · Última: "
+			            & FORMAT ( [Última Respuesta], "dd/mm/yyyy" ),
+			        "Sin respuestas para los filtros seleccionados"
+			    )
+		displayFolder: 1. Participación
+
+	/// Total de calificaciones Likert (encuestas × preguntas).
+	measure Calificaciones = COUNTROWS ( 'Respuestas Likert' )
+		formatString: #,0
+		displayFolder: 2. Satisfacción
+
+	/// Participación de cada nivel de la escala dentro de la categoría (para barras 100 % apiladas).
+	measure '% de Calificaciones' =
+			DIVIDE (
+			    [Calificaciones],
+			    CALCULATE ( [Calificaciones], REMOVEFILTERS ( 'Escala Likert' ) )
+			)
+		formatString: 0%
+		displayFolder: 2. Satisfacción
+
+	/// Promedio en escala 1 (Muy en desacuerdo) a 5 (Muy de acuerdo).
+	measure 'Puntaje Promedio' = AVERAGE ( 'Respuestas Likert'[Puntaje] )
+		formatString: 0.00
+		displayFolder: 2. Satisfacción
+
+	/// Puntaje promedio normalizado a 0–100 %.
+	measure 'Índice de Satisfacción' = DIVIDE ( [Puntaje Promedio] - 1, 4 )
+		formatString: 0%
+		displayFolder: 2. Satisfacción
+
+	/// CSAT Top-2 Box: % de calificaciones "De acuerdo" o "Muy de acuerdo".
+	measure '% Favorable (CSAT)' =
+			DIVIDE (
+			    COALESCE ( CALCULATE ( [Calificaciones], 'Respuestas Likert'[Puntaje] >= 4 ), 0 ),
+			    [Calificaciones]
+			)
+		formatString: 0.0%;-0.0%;0.0%
+		displayFolder: 2. Satisfacción
+
+	/// % de calificaciones "Neutral".
+	measure '% Neutral' =
+			DIVIDE (
+			    COALESCE ( CALCULATE ( [Calificaciones], 'Respuestas Likert'[Puntaje] = 3 ), 0 ),
+			    [Calificaciones]
+			)
+		formatString: 0.0%;-0.0%;0.0%
+		displayFolder: 2. Satisfacción
+
+	/// Bottom-2 Box: % de calificaciones "En desacuerdo" o "Muy en desacuerdo".
+	measure '% Desfavorable' =
+			DIVIDE (
+			    COALESCE ( CALCULATE ( [Calificaciones], 'Respuestas Likert'[Puntaje] <= 2 ), 0 ),
+			    [Calificaciones]
+			)
+		formatString: 0.0%;-0.0%;0.0%
+		displayFolder: 2. Satisfacción
+
+	/// Net Satisfaction Score: % Favorable − % Desfavorable (rango −100 a +100).
+	measure 'NSS (Net Satisfaction)' =
+			IF (
+			    NOT ISBLANK ( [Calificaciones] ),
+			    ( [% Favorable (CSAT)] - [% Desfavorable] ) * 100
+			)
+		formatString: +0;-0;0
+		displayFolder: 2. Satisfacción
+
+	/// Puntaje promedio del Proceso de Selección.
+	measure 'Puntaje Selección' = CALCULATE ( [Puntaje Promedio], KEEPFILTERS ( Pregunta[Dimensión] = "Selección" ) )
+		formatString: 0.00
+		displayFolder: 3. Dimensiones y preguntas
+
+	/// Puntaje promedio del Proceso de Inducción.
+	measure 'Puntaje Inducción' = CALCULATE ( [Puntaje Promedio], KEEPFILTERS ( Pregunta[Dimensión] = "Inducción" ) )
+		formatString: 0.00
+		displayFolder: 3. Dimensiones y preguntas
+
+	/// CSAT Top-2 Box del Proceso de Selección.
+	measure 'CSAT Selección' = CALCULATE ( [% Favorable (CSAT)], KEEPFILTERS ( Pregunta[Dimensión] = "Selección" ) )
+		formatString: 0.0%;-0.0%;0.0%
+		displayFolder: 3. Dimensiones y preguntas
+
+	/// CSAT Top-2 Box del Proceso de Inducción.
+	measure 'CSAT Inducción' = CALCULATE ( [% Favorable (CSAT)], KEEPFILTERS ( Pregunta[Dimensión] = "Inducción" ) )
+		formatString: 0.0%;-0.0%;0.0%
+		displayFolder: 3. Dimensiones y preguntas
+
+	/// Diferencia de puntaje (Inducción − Selección). Negativo = la inducción está por debajo.
+	measure 'Brecha Inducción vs Selección' =
+			IF (
+			    NOT ISBLANK ( [Puntaje Inducción] ) && NOT ISBLANK ( [Puntaje Selección] ),
+			    [Puntaje Inducción] - [Puntaje Selección]
+			)
+		formatString: +0.00;-0.00;0.00
+		displayFolder: 3. Dimensiones y preguntas
+
+	/// Resultado clave del onboarding: % que se siente listo/a para comenzar su plan de entrenamiento.
+	measure '% Listos para Entrenamiento' =
+			CALCULATE (
+			    [% Favorable (CSAT)],
+			    KEEPFILTERS ( Pregunta[Pregunta (corta)] = "Preparación para el entrenamiento" )
+			)
+		formatString: 0.0%;-0.0%;0.0%
+		displayFolder: 3. Dimensiones y preguntas
+
+	/// Pregunta con mejor puntaje promedio en el contexto de filtros.
+	measure 'Fortaleza Principal' =
+			VAR _Tabla =
+			    FILTER (
+			        ADDCOLUMNS ( VALUES ( Pregunta[Pregunta (corta)] ), "@Puntaje", [Puntaje Promedio] ),
+			        NOT ISBLANK ( [@Puntaje] )
+			    )
+			VAR _Top = TOPN ( 1, _Tabla, [@Puntaje], DESC )
+			RETURN
+			    IF (
+			        NOT ISEMPTY ( _Tabla ),
+			        CONCATENATEX ( _Top, Pregunta[Pregunta (corta)] & " (" & FORMAT ( [@Puntaje], "0.00" ) & ")", " | " )
+			    )
+		displayFolder: 3. Dimensiones y preguntas
+
+	/// Pregunta con menor puntaje promedio en el contexto de filtros.
+	measure 'Oportunidad Principal' =
+			VAR _Tabla =
+			    FILTER (
+			        ADDCOLUMNS ( VALUES ( Pregunta[Pregunta (corta)] ), "@Puntaje", [Puntaje Promedio] ),
+			        NOT ISBLANK ( [@Puntaje] )
+			    )
+			VAR _Top = TOPN ( 1, _Tabla, [@Puntaje], ASC )
+			RETURN
+			    IF (
+			        NOT ISEMPTY ( _Tabla ),
+			        CONCATENATEX ( _Top, Pregunta[Pregunta (corta)] & " (" & FORMAT ( [@Puntaje], "0.00" ) & ")", " | " )
+			    )
+		displayFolder: 3. Dimensiones y preguntas
+
+	/// % de encuestados que marcó cada fortaleza.
+	measure '% Encuestados · Lo que más gustó' =
+			DIVIDE (
+			    CALCULATE (
+			        DISTINCTCOUNT ( 'Opciones Seleccionadas'[Id] ),
+			        KEEPFILTERS ( 'Opciones Seleccionadas'[Tipo] = "Lo que más gustó" )
+			    ),
+			    [Respuestas]
+			)
+		formatString: 0.0%;-0.0%;0.0%
+		displayFolder: 4. Voz del colaborador
+
+	/// % de encuestados que pidió cada mejora (excluye "Sin mejoras necesarias").
+	measure '% Encuestados · Mejoras' =
+			DIVIDE (
+			    CALCULATE (
+			        DISTINCTCOUNT ( 'Opciones Seleccionadas'[Id] ),
+			        KEEPFILTERS ( 'Opciones Seleccionadas'[Tipo] = "Qué mejorarías" ),
+			        KEEPFILTERS ( 'Opciones Seleccionadas'[Opción] <> "Sin mejoras necesarias" )
+			    ),
+			    [Respuestas]
+			)
+		formatString: 0.0%;-0.0%;0.0%
+		displayFolder: 4. Voz del colaborador
+
+	/// % de encuestados que no recibió cada recurso esperado (excluye "No faltó ningún recurso").
+	measure '% Encuestados · Faltantes' =
+			DIVIDE (
+			    CALCULATE (
+			        DISTINCTCOUNT ( 'Opciones Seleccionadas'[Id] ),
+			        KEEPFILTERS ( 'Opciones Seleccionadas'[Tipo] = "Qué faltó en la inducción" ),
+			        KEEPFILTERS ( 'Opciones Seleccionadas'[Opción] <> "No faltó ningún recurso" )
+			    ),
+			    [Respuestas]
+			)
+		formatString: 0.0%;-0.0%;0.0%
+		displayFolder: 4. Voz del colaborador
+
+	/// % de encuestados que indicó que no hacen falta mejoras.
+	measure '% Sin Mejoras Necesarias' =
+			DIVIDE (
+			    CALCULATE (
+			        DISTINCTCOUNT ( 'Opciones Seleccionadas'[Id] ),
+			        'Opciones Seleccionadas'[Tipo] = "Qué mejorarías",
+			        'Opciones Seleccionadas'[Opción] = "Sin mejoras necesarias"
+			    ),
+			    [Respuestas]
+			)
+		formatString: 0.0%;-0.0%;0.0%
+		displayFolder: 4. Voz del colaborador
+
+	/// % de encuestados a quienes no les faltó ningún recurso en la inducción.
+	measure '% Inducción Completa' =
+			DIVIDE (
+			    CALCULATE (
+			        DISTINCTCOUNT ( 'Opciones Seleccionadas'[Id] ),
+			        'Opciones Seleccionadas'[Tipo] = "Qué faltó en la inducción",
+			        'Opciones Seleccionadas'[Opción] = "No faltó ningún recurso"
+			    ),
+			    [Respuestas]
+			)
+		formatString: 0.0%;-0.0%;0.0%
+		displayFolder: 4. Voz del colaborador
+
+	/// Comentarios abiertos con contenido.
+	measure 'Comentarios Recibidos' = COUNTROWS ( Comentarios )
+		formatString: #,0
+		displayFolder: 4. Voz del colaborador
+
+	/// % de encuestas con un comentario abierto.
+	measure 'Tasa de Comentarios' = DIVIDE ( [Comentarios Recibidos], [Respuestas] )
+		formatString: 0.0%;-0.0%;0.0%
+		displayFolder: 4. Voz del colaborador
+
+	/// Meta de CSAT Top-2 Box (80 %).
+	measure 'Meta CSAT' = 0.8
+		formatString: 0%
+		displayFolder: 5. Formato y metas
+
+	/// Meta de puntaje promedio (4 = "De acuerdo").
+	measure 'Meta Puntaje' = 4
+		formatString: 0.00
+		displayFolder: 5. Formato y metas
+
+	/// Mínimo de la escala Likert (para medidores).
+	measure 'Escala Mínima' = 1
+		formatString: 0
+		displayFolder: 5. Formato y metas
+
+	/// Máximo de la escala Likert (para medidores).
+	measure 'Escala Máxima' = 5
+		formatString: 0
+		displayFolder: 5. Formato y metas
+
+	/// Máximo de CSAT (para medidores).
+	measure 'CSAT Máximo' = 1
+		formatString: 0%
+		displayFolder: 5. Formato y metas
+
+	/// Semáforo por puntaje: ≥4 verde, ≥3 ámbar, <3 rojo.
+	measure 'Color Puntaje' =
+			VAR _P = [Puntaje Promedio]
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( _P ), BLANK (),
+			        _P >= 4, "#1A7F5A",
+			        _P >= 3, "#E0A100",
+			        "#C0392B"
+			    )
+		displayFolder: 5. Formato y metas
+
+	/// Semáforo por CSAT: ≥80 % verde, ≥60 % ámbar, <60 % rojo.
+	measure 'Color CSAT' =
+			VAR _C = [% Favorable (CSAT)]
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( _C ), BLANK (),
+			        _C >= 0.8, "#1A7F5A",
+			        _C >= 0.6, "#E0A100",
+			        "#C0392B"
+			    )
+		displayFolder: 5. Formato y metas
+
+	/// Fondo suave para el mapa de calor de la matriz.
+	measure 'Color Mapa de Calor' =
+			VAR _P = [Puntaje Promedio]
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( _P ), BLANK (),
+			        _P >= 4.5, "#A7DCC2",
+			        _P >= 4, "#D3EEE0",
+			        _P >= 3, "#FFF1C2",
+			        _P >= 2, "#F8D5CE",
+			        "#EFA99C"
+			    )
+		displayFolder: 5. Formato y metas
+
+	column Medidas
+		dataType: int64
+		isHidden
+		isNameInferred
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: [Medidas]
+
+	partition _Medidas = calculated
+		mode: import
+		source = ROW ( "Medidas", 0 )
+

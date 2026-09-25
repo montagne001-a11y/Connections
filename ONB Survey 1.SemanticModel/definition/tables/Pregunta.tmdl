@@ -1,0 +1,108 @@
+/// Dimensión de preguntas Likert. Se genera a partir de los encabezados "Proceso de ... .<pregunta>" del formulario,
+/// así una pregunta nueva aparece automáticamente (con su texto completo si no tiene etiqueta corta).
+table Pregunta
+
+	column Clave
+		dataType: string
+		isKey
+		isHidden
+		summarizeBy: none
+		sourceColumn: Clave
+
+	column Dimensión
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Dimensión
+		sortByColumn: 'Orden Dimensión'
+
+	column 'Orden Dimensión'
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Orden Dimensión
+
+	column Pregunta
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Pregunta
+		sortByColumn: Orden
+
+	column 'Pregunta (corta)'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Pregunta (corta)
+		sortByColumn: Orden
+
+	column Orden
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Orden
+
+	partition Pregunta = m
+		mode: import
+		source =
+				let
+				    Source = Origen,
+				    Claves = List.Select(
+				        Table.ColumnNames(Source),
+				        each Text.StartsWith(_, "Proceso de Selección.") or Text.StartsWith(_, "Proceso de Inducción.")
+				    ),
+				    Tabla = Table.FromList(Claves, Splitter.SplitByNothing(), type table [Clave = text]),
+				    Indice = Table.AddIndexColumn(Tabla, "Orden", 1, 1, Int64.Type),
+				    Dimension = Table.AddColumn(
+				        Indice,
+				        "Dimensión",
+				        each Text.AfterDelimiter(Text.BeforeDelimiter([Clave], "."), "Proceso de "),
+				        type text
+				    ),
+				    OrdenDimension = Table.AddColumn(
+				        Dimension,
+				        "Orden Dimensión",
+				        each if [Dimensión] = "Selección" then 1 else if [Dimensión] = "Inducción" then 2 else 3,
+				        Int64.Type
+				    ),
+				    Texto = Table.AddColumn(OrdenDimension, "Pregunta", each Text.AfterDelimiter([Clave], "."), type text),
+				    Etiquetas = Record.FromList(
+				        {
+				            "Claridad y transparencia",
+				            "Comunicación y plazos",
+				            "Profesionalismo de entrevistadores",
+				            "Información del cargo y empresa",
+				            "Organización del Día 1",
+				            "Inducción Corporativa",
+				            "Bienvenida y apoyo de RRHH",
+				            "Efectividad de capacitadores",
+				            "Kit de Bienvenida",
+				            "Preparación para el entrenamiento"
+				        },
+				        {
+				            "El proceso de selección fue claro y transparente.",
+				            "La comunicación sobre el proceso y los plazos fue adecuada.",
+				            "Los entrevistadores se mostraron profesionales y respetuosos.",
+				            "Recibí información clara sobre el cargo y la empresa antes de aceptar la oferta.",
+				            "El Día 1 estuvo bien organizado y fue de calidad.",
+				            "La información de la Inducción Corporativa fue clara y útil.",
+				            "El equipo de RRHH me hizo sentir bienvenido/a y apoyado/a.",
+				            "Los capacitadores de las charlas especializadas transmitieron la información de forma efectiva.",
+				            "El Kit de Bienvenida fue un detalle significativo para mí.",
+				            "Me siento listo/a para comenzar mi plan de entrenamiento."
+				        }
+				    ),
+				    Corta = Table.AddColumn(
+				        Texto,
+				        "Pregunta (corta)",
+				        each Record.FieldOrDefault(Etiquetas, [Pregunta], [Pregunta]),
+				        type text
+				    ),
+				    Resultado = Table.SelectColumns(
+				        Corta,
+				        {"Clave", "Dimensión", "Orden Dimensión", "Pregunta", "Pregunta (corta)", "Orden"}
+				    )
+				in
+				    Resultado
+
+	annotation PBI_ResultType = Table
+

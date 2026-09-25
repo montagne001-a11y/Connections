@@ -1,0 +1,98 @@
+/// Una fila por encuesta respondida (tabla de hechos principal).
+table Encuesta
+
+	column Id
+		dataType: int64
+		isKey
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Id
+
+	column 'Hora de inicio'
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Hora de inicio
+
+	column 'Hora de finalización'
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Hora de finalización
+
+	column Fecha
+		dataType: dateTime
+		formatString: dd/mm/yyyy
+		summarizeBy: none
+		sourceColumn: Fecha
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Duración (min)'
+		dataType: double
+		formatString: 0.0
+		summarizeBy: none
+		sourceColumn: Duración (min)
+
+	column Correo
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Correo
+
+	column Nombre
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Nombre
+
+	column País
+		dataType: string
+		dataCategory: Country
+		summarizeBy: none
+		sourceColumn: País
+
+	column Compañía
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Compañía
+
+	column Rol
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Rol
+
+	partition Encuesta = m
+		mode: import
+		source =
+				let
+				    Source = Origen,
+				    Seleccion = Table.SelectColumns(
+				        Source,
+				        {"Id", "Hora de inicio", "Hora de finalización", "Correo electrónico", "Nombre", "País", "Compañia", "Rol"},
+				        MissingField.UseNull
+				    ),
+				    Renombrar = Table.RenameColumns(
+				        Seleccion,
+				        {{"Correo electrónico", "Correo"}, {"Compañia", "Compañía"}}
+				    ),
+				    Limpiar = Table.TransformColumns(
+				        Renombrar,
+				        {
+				            {"Correo", each if _ = null then null else Text.Lower(Text.Trim(_)), type text},
+				            {"Nombre", each if _ = null then null else Text.Trim(_), type text},
+				            {"País", each if _ = null then null else Text.Trim(_), type text},
+				            {"Compañía", each if _ = null then null else Text.Trim(_), type text},
+				            {"Rol", each if _ = null then null else Text.Trim(_), type text}
+				        }
+				    ),
+				    Fecha = Table.AddColumn(Limpiar, "Fecha", each DateTime.Date([Hora de finalización]), type date),
+				    Duracion = Table.AddColumn(
+				        Fecha,
+				        "Duración (min)",
+				        each Duration.TotalMinutes([Hora de finalización] - [Hora de inicio]),
+				        type number
+				    )
+				in
+				    Duracion
+
+	annotation PBI_ResultType = Table
+

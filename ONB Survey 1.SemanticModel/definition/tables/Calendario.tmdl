@@ -1,0 +1,71 @@
+/// Tabla de fechas (reemplaza las tablas automáticas LocalDateTable).
+table Calendario
+	dataCategory: Time
+
+	column Fecha
+		dataType: dateTime
+		isKey
+		isNameInferred
+		formatString: dd/mm/yyyy
+		summarizeBy: none
+		sourceColumn: [Fecha]
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Año
+		dataType: int64
+		isNameInferred
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: [Año]
+
+	column 'Mes Nro'
+		dataType: int64
+		isHidden
+		isNameInferred
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: [Mes Nro]
+
+	column Mes
+		dataType: string
+		isNameInferred
+		summarizeBy: none
+		sourceColumn: [Mes]
+		sortByColumn: 'Año Mes'
+
+	column 'Año Mes'
+		dataType: int64
+		isHidden
+		isNameInferred
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: [Año Mes]
+
+	column 'Inicio de Semana'
+		dataType: dateTime
+		isNameInferred
+		formatString: dd/mm/yyyy
+		summarizeBy: none
+		sourceColumn: [Inicio de Semana]
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	partition Calendario = calculated
+		mode: import
+		source =
+				VAR _Inicio = MIN ( Encuesta[Fecha] )
+				VAR _Fin = MAX ( Encuesta[Fecha] )
+				VAR _Desde = IF ( ISBLANK ( _Inicio ), TODAY (), DATE ( YEAR ( _Inicio ), MONTH ( _Inicio ), 1 ) )
+				VAR _Hasta = IF ( ISBLANK ( _Fin ), TODAY (), EOMONTH ( _Fin, 0 ) )
+				VAR _Fechas = SELECTCOLUMNS ( CALENDAR ( _Desde, _Hasta ), "Fecha", [Date] )
+				RETURN
+				    ADDCOLUMNS (
+				        _Fechas,
+				        "Año", YEAR ( [Fecha] ),
+				        "Mes Nro", MONTH ( [Fecha] ),
+				        "Mes", FORMAT ( [Fecha], "mmm yyyy" ),
+				        "Año Mes", YEAR ( [Fecha] ) * 100 + MONTH ( [Fecha] ),
+				        "Inicio de Semana", [Fecha] - WEEKDAY ( [Fecha], 2 ) + 1
+				    )
+
