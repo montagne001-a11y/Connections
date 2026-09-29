@@ -223,6 +223,13 @@
             }
           },
           "selector": {
+            "data": [
+              {
+                "dataViewWildcard": {
+                  "matchingOption": 1
+                }
+              }
+            ],
             "metadata": "_Medidas.Puntaje Promedio"
           }
         }
