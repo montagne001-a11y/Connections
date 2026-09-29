@@ -313,6 +313,36 @@ table _Medidas
 			    )
 		displayFolder: 5. Formato y metas
 
+	/// Fondo suave por CSAT: ≥90 % verde oscuro, ≥80 % verde, ≥60 % amarillo, ≥40 % rojo claro, <40 % rojo.
+	measure 'Color Fondo CSAT' =
+			VAR _C = [% Favorable (CSAT)]
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( _C ), BLANK (),
+			        _C >= 0.9, "#A7DCC2",
+			        _C >= 0.8, "#D3EEE0",
+			        _C >= 0.6, "#FFF1C2",
+			        _C >= 0.4, "#F8D5CE",
+			        "#EFA99C"
+			    )
+		displayFolder: 5. Formato y metas
+
+	/// Fondo suave por % Desfavorable (menor es mejor): ≤5 % verde oscuro, ≤10 % verde, ≤20 % amarillo, ≤35 % rojo claro, >35 % rojo.
+	measure 'Color Fondo Desfavorable' =
+			VAR _D = [% Desfavorable]
+			RETURN
+			    SWITCH (
+			        TRUE (),
+			        ISBLANK ( _D ), BLANK (),
+			        _D <= 0.05, "#A7DCC2",
+			        _D <= 0.1, "#D3EEE0",
+			        _D <= 0.2, "#FFF1C2",
+			        _D <= 0.35, "#F8D5CE",
+			        "#EFA99C"
+			    )
+		displayFolder: 5. Formato y metas
+
 	column Medidas
 		dataType: int64
 		isHidden

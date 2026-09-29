@@ -232,6 +232,66 @@
             ],
             "metadata": "_Medidas.Puntaje Promedio"
           }
+        },
+        {
+          "properties": {
+            "backColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Measure": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "_Medidas"
+                        }
+                      },
+                      "Property": "Color Fondo CSAT"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "selector": {
+            "data": [
+              {
+                "dataViewWildcard": {
+                  "matchingOption": 1
+                }
+              }
+            ],
+            "metadata": "_Medidas.% Favorable (CSAT)"
+          }
+        },
+        {
+          "properties": {
+            "backColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Measure": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Entity": "_Medidas"
+                        }
+                      },
+                      "Property": "Color Fondo Desfavorable"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "selector": {
+            "data": [
+              {
+                "dataViewWildcard": {
+                  "matchingOption": 1
+                }
+              }
+            ],
+            "metadata": "_Medidas.% Desfavorable"
+          }
         }
       ],
       "grid": [
@@ -338,7 +398,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Fondo: verde ≥ 4 · amarillo ≥ 3 · rojo < 3'"
+                  "Value": "'Semáforo · Puntaje: verde ≥ 4, amarillo ≥ 3 · CSAT: verde ≥ 80 %, amarillo ≥ 60 % · % Desfav.: verde ≤ 10 %, amarillo ≤ 20 %'"
                 }
               }
             },

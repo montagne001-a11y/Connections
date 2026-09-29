@@ -42,6 +42,8 @@ automatically. To give one a short chart label, add it to the `Etiquetas` list i
 | % Sin Mejoras Necesarias, % Inducción Completa | Share of respondents who answered "no improvements needed" / "nothing was missing" |
 
 Traffic-light colors: green at 4 or above (CSAT 80 % or above), amber at 3 or above (60 % or above), red below that.
+In the *Scorecard por Pregunta* table, the Puntaje, CSAT and % Desfav. columns get a soft background by the same logic
+(% Desfav.: green at 10 % or below, amber at 20 % or below, red above that).
 
 ## Report pages (`ONB Survey 1.Report`)
 
